@@ -1,5 +1,5 @@
 class ProductValuation:
-    def __init__(self, original_value, years_used,  depreciation_rate, uniqueness_score, preciousness_score, market_trend_factor, additional_factors=None):
+    def __init__(self, category, original_value, years_used,  depreciation_rate, uniqueness_score, preciousness_score, market_trend_factor, additional_factors=None):
         # To Initialize the product valuation model
         # Annual depreciation rate -> probably in the range of (0% to 10%) so numeric value = (0 to 1)
         # Score for uniqueness -> in the range of (0 to 10), numeric value  (o to 1)
@@ -11,6 +11,7 @@ class ProductValuation:
         self.uniqueness_score=uniqueness_score
         self.preciousness_score=preciousness_score
         self.market_trend_factor=market_trend_factor
+        self.category=category
         self.additional_factors=additional_factors
 
    # Making a separate function for this bcoz i might hve to add some other computation or steps here:
@@ -29,6 +30,22 @@ class ProductValuation:
 
     def apply_market_trend(self,  base_value):
         return base_value * self.market_trend_factor
+
+
+    # This method only works when we have a definite API
+    @staticmethod
+    def fetch_market_trend(category):
+        # Fetch market trend factor dynamically for the given category.
+        # Fetch either via API or via tool
+        # :param category: (str) Product category to fetch trends for.
+        # :return: (dict) Market trend data.
+        try:
+            response = requests.get(f"https://api.example.com/market-trends/{category}")
+            if response.status_code == 200:
+                return response.json()
+        except requests.RequestException:
+            pass
+        return {"trend_factor": 1.0}  # Default trend factor
 
 
     def apply_additional_factors(self, base_value):
@@ -53,7 +70,7 @@ class ProductValuation:
 
 
 class ServiceValuation:
-    def __init__(self, base_rate, hours, expertise_level, demand_factor, additional_factors=None):
+    def __init__(self,category, base_rate, hours, expertise_level, demand_factor, additional_factors=None):
         # Initialise the service valutation model.
         # base_rate = hourly rate
         # expertise_level = Multiplier based on expertise_level, example -> 1.0 for junior (easy) tasks, 1.5 for senior(complex),
@@ -64,6 +81,7 @@ class ServiceValuation:
         self.hours = hours
         self.expertise_level = expertise_level
         self.demand_factor = demand_factor
+        self.category = category
         self.additional_factors = additional_factors or {}
 
 
@@ -77,6 +95,23 @@ class ServiceValuation:
     def apply_demand_factor(self, base_value):
         # Adjust the value based on market demand.
         return base_value * self.demand_factor
+
+    @staticmethod
+    def fetch_market_trend(category):
+        """
+        Fetch market trend factor dynamically for the given category.
+
+        :param category: (str) Service category to fetch trends for.
+        :return: (dict) Market trend data.
+        """
+        try:
+            response = requests.get(f"https://api.example.com/service-trends/{category}")
+            if response.status_code == 200:
+                return response.json()
+        except requests.RequestException:
+            pass
+        return {"trend_factor": 1.0}  # Default trend factor
+
 
     def apply_additional_factors(self, base_value):
         # Adjust the value based on additional user-defined factors.
