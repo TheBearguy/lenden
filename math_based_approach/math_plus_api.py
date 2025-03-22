@@ -195,26 +195,51 @@ class AssetValuationUsingAPIs:
                 current_value = initial_price * (1 - rate) ** years_used
                 return max(current_value, salvage)
 
+
     def get_inflation_adjusted(self, value, years_used):
-        """Accurate inflation adjustment using historical data"""
+        """Accurate inflation adjustment using StatBureau API"""
         try:
+            current_year = datetime.now().year
             params = {
                 'country': 'united-states',
-                'start': datetime.now().year - years_used,
-                'end': datetime.now().year
+                'start': current_year - years_used,
+                'end': current_year,
+                'format': 'true',
+                'interval': 'year'
             }
-            response = requests.get(self.inflation_api, params=params, timeout=5)
+            
+            response = requests.get(
+                self.inflation_api,
+                params=params,
+                timeout=5
+            )
             response.raise_for_status()
             
-            inflation_rates = response.json()
-            cumulative = 1.0
-            for rate in inflation_rates:
-                cumulative *= (1 + rate/100)
+            inflation_data = response.json()
+            
+            if not isinstance(inflation_data, list) or len(inflation_data) == 0:
+                print("No valid inflation data available")
+                return value
                 
-            return round(value * cumulative, 2)
+            cumulative_factor = 1.0
+            for rate in inflation_data:
+                try:
+                    # Convert percentage to decimal and calculate cumulative effect
+                    cumulative_factor *= (1 + float(rate)/100
+                except (ValueError, TypeError):
+                    continue  # Skip invalid entries
+                    
+            return round(value * cumulative_factor, 2)
+            
+        except requests.exceptions.HTTPError as e:
+            print(f"Inflation API Error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"Inflation API connection failed: {str(e)}")
         except Exception as e:
-            print(f"Inflation adjustment failed: {str(e)}")
-            return value
+            print(f"Inflation calculation error: {str(e)}")
+            
+        return value  # Fallback to original value
+
 
     def _get_validated_input(self, prompt, data_type):
         """Universal input validation with retry logic"""
